@@ -1,4 +1,4 @@
-const CACHE_NAME = 'huoli-v2';
+const CACHE_NAME = 'huoli-v3';
 const ASSETS = [
   './',
   './app.html',

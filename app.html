@@ -977,7 +977,13 @@
     .note-block .block-content[data-type="bullet"]::before { content: '•'; position: absolute; left: 4px; color: var(--color-muted); }
     .note-block .block-content[data-type="quote"] { border-left: 3px solid var(--color-notes); padding-left: 12px; color: var(--color-muted); font-style: italic; }
     .note-block .block-content[data-type="checklist"] { padding-left: 24px; position: relative; }
-    .note-block .block-content[data-type="checklist"]::before { content: ''; position: absolute; left: 2px; top: 7px; width: 14px; height: 14px; border: 2px solid var(--color-border); border-radius: 4px; }
+    .note-block .block-content[data-type="checklist"]::before { content: ''; position: absolute; left: 2px; top: 7px; width: 14px; height: 14px; border: 2px solid var(--color-border); border-radius: 4px; cursor: pointer; }
+    .note-block .block-content[data-type="checklist"].checked::before { background: var(--color-primary); border-color: var(--color-primary); }
+    .note-block .block-content[data-type="checklist"].checked::after { content: ''; position: absolute; left: 5px; top: 8px; width: 5px; height: 9px; border: solid white; border-width: 0 2px 2px 0; transform: rotate(45deg); z-index: 1; }
+    .note-block .block-content[data-type="checklist"].checked { text-decoration: line-through; color: var(--color-muted); }
+    .block-delete-btn { opacity: 0; background: none; border: none; color: var(--color-muted); cursor: pointer; padding: 2px; font-size: 14px; line-height: 1.5; transition: opacity 0.15s; }
+    .note-block:hover .block-delete-btn { opacity: 0.6; }
+    .block-delete-btn:hover { opacity: 1 !important; color: var(--color-danger); }
     .note-block .block-divider { width: 100%; height: 1px; background: var(--color-border); margin: 12px 0; }
     .note-item { cursor: pointer; transition: background var(--motion-fast) var(--motion-ease); }
     .note-item:active { background: var(--color-bg); }
@@ -1005,32 +1011,32 @@
 
     /* ─── Swipe to delete ──────────────────────────────────────────── */
     .swipe-wrapper {
-      position: relative;
       overflow: hidden;
       -webkit-user-select: none;
       user-select: none;
     }
-    .swipe-wrapper > .swipe-item {
-      position: relative;
-      z-index: 1;
-      background: var(--color-surface);
+    .swipe-inner {
+      display: flex;
       transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      touch-action: pan-y;
+      will-change: transform;
     }
-    .swipe-wrapper > .swipe-item.swiping {
+    .swipe-inner.swiping {
       transition: none;
     }
+    .swipe-inner > .swipe-item {
+      flex: 1;
+      min-width: 0;
+      background: var(--color-surface);
+      touch-action: pan-y;
+    }
     .swipe-delete-zone {
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
+      flex: 0 0 80px;
       width: 80px;
+      background: var(--color-danger);
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      z-index: 0;
       -webkit-tap-highlight-color: transparent;
     }
     .swipe-delete-zone svg {
@@ -1041,26 +1047,6 @@
       stroke-width: 2;
       stroke-linecap: round;
       stroke-linejoin: round;
-    }
-    .swipe-wrapper::after {
-      content: '';
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      width: 80px;
-      background: var(--color-danger);
-      z-index: 0;
-    }
-    @keyframes swipeFadeOut {
-      to {
-        max-height: 0;
-        padding-top: 0;
-        padding-bottom: 0;
-        margin: 0;
-        opacity: 0;
-        overflow: hidden;
-      }
     }
 
     /* ─── Mobile PWA mode ──────────────────────────────────────────── */
@@ -2064,7 +2050,7 @@
         <div class="modal-overlay" id="modal-notes" style="align-items: stretch;">
           <div style="background: var(--color-surface); width: 100%; height: 100%; display: flex; flex-direction: column; border-radius: 44px; overflow: hidden;">
             <!-- Editor top bar -->
-            <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--color-border);">
+            <div style="display: flex; align-items: center; justify-content: space-between; padding: max(12px, env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid var(--color-border);">
               <button onclick="closeModal('modal-notes')" style="background: none; border: none; color: var(--color-muted); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                 <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><polyline points="15 18 9 12 15 6"/></svg>
                 返回
@@ -2085,6 +2071,7 @@
                 <div class="note-block" data-type="paragraph" style="display: flex; align-items: flex-start; gap: 4px; margin-bottom: 4px;">
                   <button class="block-handle" style="opacity: 0; background: none; border: none; color: var(--color-muted); cursor: pointer; padding: 2px; font-size: 16px; line-height: 1.5;">+</button>
                   <div contenteditable="true" class="block-content" style="flex: 1; outline: none; font-size: 14px; line-height: 1.7; color: var(--color-fg); padding: 4px 0;" data-placeholder="输入 / 添加块..."></div>
+                  <button class="block-delete-btn" title="删除">×</button>
                 </div>
               </div>
             </div>
@@ -2112,7 +2099,7 @@
         <!-- Notes: Note Viewer (read existing notes) -->
         <div class="modal-overlay" id="modal-note-view" style="align-items: stretch;">
           <div style="background: var(--color-surface); width: 100%; height: 100%; display: flex; flex-direction: column; border-radius: 44px; overflow: hidden;">
-            <div style="display: flex; align-items: center; padding: 12px 16px; border-bottom: 1px solid var(--color-border);">
+            <div style="display: flex; align-items: center; padding: max(12px, env(safe-area-inset-top)) 16px 12px 16px; border-bottom: 1px solid var(--color-border);">
               <button onclick="closeModal('modal-note-view')" style="background: none; border: none; color: var(--color-muted); font-size: 14px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                 <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;"><polyline points="15 18 9 12 15 6"/></svg>
                 返回
@@ -2404,7 +2391,7 @@
       block.setAttribute('data-type', type);
 
       if (type === 'divider') {
-        block.innerHTML = '<button class="block-handle" style="opacity:0;background:none;border:none;color:var(--color-muted);cursor:pointer;padding:2px;font-size:16px;line-height:1.5;">+</button><div class="block-divider"></div>';
+        block.innerHTML = '<button class="block-handle" style="opacity:0;background:none;border:none;color:var(--color-muted);cursor:pointer;padding:2px;font-size:16px;line-height:1.5;">+</button><div class="block-divider"></div><button class="block-delete-btn" title="删除">×</button>';
         container.appendChild(block);
         // Add an empty paragraph after divider
         addNoteBlock('paragraph');
@@ -2426,7 +2413,8 @@
 
       block.innerHTML =
         '<button class="block-handle" style="opacity:0;background:none;border:none;color:var(--color-muted);cursor:pointer;padding:2px;font-size:16px;line-height:1.5;">+</button>' +
-        '<div contenteditable="true" class="block-content" data-type="' + type + '" style="' + style + '" data-placeholder="' + placeholder + '">' + prefix + '</div>';
+        '<div contenteditable="true" class="block-content" data-type="' + type + '" style="' + style + '" data-placeholder="' + placeholder + '">' + prefix + '</div>' +
+        '<button class="block-delete-btn" title="删除">×</button>';
       container.appendChild(block);
 
       // Focus the new block
@@ -2436,18 +2424,75 @@
 
     // Block handle + button: insert new block after current
     document.getElementById('note-blocks').addEventListener('click', e => {
+      // Checklist toggle: click in the left 22px area of a checklist block
+      const blockContent = e.target.closest('.block-content[data-type="checklist"]');
+      if (blockContent) {
+        const rect = blockContent.getBoundingClientRect();
+        if (e.clientX - rect.left < 22) {
+          blockContent.classList.toggle('checked');
+          return;
+        }
+      }
+
+      // Block handle: add new paragraph
       const handle = e.target.closest('.block-handle');
-      if (!handle) return;
-      addNoteBlock('paragraph');
+      if (handle) {
+        addNoteBlock('paragraph');
+        return;
+      }
+
+      // Block delete button
+      const delBtn = e.target.closest('.block-delete-btn');
+      if (delBtn) {
+        const block = delBtn.closest('.note-block');
+        const allBlocks = document.querySelectorAll('#note-blocks .note-block');
+        if (allBlocks.length > 1 && block) {
+          const prev = block.previousElementSibling;
+          const next = block.nextElementSibling;
+          block.remove();
+          // Focus adjacent block
+          const focusTarget = prev || next;
+          if (focusTarget) {
+            const ed = focusTarget.querySelector('[contenteditable]');
+            if (ed) ed.focus();
+          }
+        }
+        return;
+      }
     });
 
-    // Enter key in block: create new paragraph block below
+    // Enter key: create new block; Backspace on empty block: delete it
     document.getElementById('note-blocks').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) {
         const block = e.target.closest('.block-content');
-        if (block && block.textContent.trim() !== '') {
+        if (block) {
           e.preventDefault();
           addNoteBlock('paragraph');
+        }
+      }
+      if (e.key === 'Backspace') {
+        const block = e.target.closest('.block-content');
+        if (block && block.textContent === '') {
+          const noteBlock = block.closest('.note-block');
+          const allBlocks = document.querySelectorAll('#note-blocks .note-block');
+          if (allBlocks.length > 1 && noteBlock) {
+            e.preventDefault();
+            const prev = noteBlock.previousElementSibling;
+            noteBlock.remove();
+            if (prev) {
+              const ed = prev.querySelector('[contenteditable]');
+              if (ed) {
+                ed.focus();
+                // Place cursor at end
+                const range = document.createRange();
+                range.selectNodeContents(ed);
+                range.collapse(false);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+              }
+            }
+          }
         }
       }
     });
@@ -2748,18 +2793,18 @@
     }
 
     /* ═══ Swipe to delete (universal) ═══ */
-    let activeSwipeItem = null;
+    let activeSwipeInner = null;
 
     function closeActiveSwipe() {
-      if (activeSwipeItem) {
-        activeSwipeItem.style.transform = '';
-        activeSwipeItem.classList.remove('swiping');
-        activeSwipeItem = null;
+      if (activeSwipeInner) {
+        activeSwipeInner.style.transform = '';
+        activeSwipeInner.classList.remove('swiping');
+        activeSwipeInner = null;
       }
     }
 
     document.addEventListener('touchstart', function(e) {
-      if (activeSwipeItem && !activeSwipeItem.closest('.swipe-wrapper').contains(e.target)) {
+      if (activeSwipeInner && !activeSwipeInner.closest('.swipe-wrapper').contains(e.target)) {
         closeActiveSwipe();
       }
     }, { passive: true });
@@ -2768,10 +2813,14 @@
       var opts = callbacks || {};
       document.querySelectorAll(itemSelector).forEach(function(item) {
         // Skip items already wrapped
+        if (item.parentElement && item.parentElement.classList.contains('swipe-inner')) return;
         if (item.parentElement && item.parentElement.classList.contains('swipe-wrapper')) return;
 
         var wrapper = document.createElement('div');
         wrapper.className = 'swipe-wrapper';
+
+        var inner = document.createElement('div');
+        inner.className = 'swipe-inner';
 
         // Preserve border-top styling
         var computedBorderTop = getComputedStyle(item).borderTop;
@@ -2782,13 +2831,14 @@
 
         item.classList.add('swipe-item');
         item.parentNode.insertBefore(wrapper, item);
-        wrapper.appendChild(item);
+        wrapper.appendChild(inner);
+        inner.appendChild(item);
 
         // Create delete zone with trash icon
         var deleteZone = document.createElement('div');
         deleteZone.className = 'swipe-delete-zone';
         deleteZone.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
-        wrapper.appendChild(deleteZone);
+        inner.appendChild(deleteZone);
 
         var startX = 0, startY = 0, currentX = 0, swiping = false, direction = null;
         var threshold = 80;
@@ -2813,8 +2863,8 @@
           if (direction === 'v') return;
 
           currentX = Math.min(0, Math.max(-threshold * 1.3, dx));
-          item.style.transform = 'translateX(' + currentX + 'px)';
-          item.classList.add('swiping');
+          inner.style.transform = 'translateX(' + currentX + 'px)';
+          inner.classList.add('swiping');
           swiping = true;
 
           if (Math.abs(dx) > 10) e.preventDefault();
@@ -2823,13 +2873,13 @@
         item.addEventListener('touchend', function() {
           if (!swiping) return;
           swiping = false;
-          item.classList.remove('swiping');
+          inner.classList.remove('swiping');
 
           if (currentX < -threshold * 0.5) {
-            item.style.transform = 'translateX(-' + threshold + 'px)';
-            activeSwipeItem = item;
+            inner.style.transform = 'translateX(-' + threshold + 'px)';
+            activeSwipeInner = inner;
           } else {
-            item.style.transform = '';
+            inner.style.transform = '';
           }
           currentX = 0;
         }, { passive: true });
@@ -2851,7 +2901,7 @@
             if (opts.afterDelete) opts.afterDelete();
           }, 350);
 
-          if (activeSwipeItem === item) activeSwipeItem = null;
+          if (activeSwipeInner === inner) activeSwipeInner = null;
         });
       });
     }
